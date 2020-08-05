@@ -18,6 +18,20 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\chunk.cpp" />
+    <ClCompile Include="src\compiler.cpp" />
+    <ClCompile Include="src\derpLangVM.cpp" />
+    <ClCompile Include="src\scanner.cpp" />
+    <ClCompile Include="src\Source.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\chunk.h" />
+    <ClInclude Include="src\compiler.h" />
+    <ClInclude Include="src\derpLangVM.h" />
+    <ClInclude Include="src\global.h" />
+    <ClInclude Include="src\scanner.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{BA678E68-E9B7-412B-A6A5-292D51B2A02B}</ProjectGuid>
@@ -137,8 +151,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
