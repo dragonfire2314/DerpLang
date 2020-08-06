@@ -2,6 +2,8 @@
 #include "scanner.h"
 
 #include <iostream>
+#include <unordered_map>
+#include <string>
 
 void print();
 CallEntry lookupRule(Token_Type type);
@@ -15,10 +17,18 @@ void emitByte(uint8_t byte);
 void consume(Token_Type type, const char* message);
 void execute();
 void parsePrecedence(Precedence precedence);
+void grouping();
+void function();
+void advance();
+void declaration();
+void brace();
+void prefixVar();
+void var();
 
 //Rule table
 CallEntry rules[] = {
 	{NULL, NULL, PREC_NONE},		//TOKEN_NONE
+	{NULL, NULL, PREC_NONE},		//TOKEN_EQUAL
 
 	{NULL, binary, PREC_TERM},		//TOKEN_PLUS
 	{NULL, binary, PREC_TERM},		//TOKEN_MINUS
@@ -31,9 +41,9 @@ CallEntry rules[] = {
 	{NULL, NULL, PREC_NONE},		//TOKEN_ELSE
 
 	{NULL, NULL, PREC_NONE},		//TOKEN_FUNCTION
-	{NULL, NULL, PREC_NONE},		//TOKEN_LEFT_PAREN
-	{NULL, NULL, PREC_TERM},		//TOKEN_RIGHT_PAREN
-	{NULL, NULL, PREC_NONE},		//TOKEN_LEFT_BRACE
+	{grouping, NULL, PREC_NONE},	//TOKEN_LEFT_PAREN
+	{NULL, NULL, PREC_NONE},		//TOKEN_RIGHT_PAREN
+	{brace, NULL, PREC_NONE},		//TOKEN_LEFT_BRACE
 	{NULL, NULL, PREC_NONE},		//TOKEN_RIGHT_BRACE
 	{NULL, NULL, PREC_NONE},		//TOKEN_SEMICOLON
 
@@ -42,30 +52,44 @@ CallEntry rules[] = {
 	{print, NULL, PREC_NONE},		//TOKEN_PRINT
 	 
 	{NULL, NULL, PREC_NONE},		//TOKEN_EOF
-	{NULL, NULL, PREC_NONE},		//TOKEN_GENERAL_ID
+	{prefixVar, NULL, PREC_NONE},	//TOKEN_VAR_IDENTIFIER
 	{NULL, NULL, PREC_NONE},		//TOKEN_ERROR
 };
 
 Parser parser;
 
+std::unordered_map<std::string, uint16_t> stringToVarLocation;
+
 Chunk compile(const char* data) 
 {
+	parser.isError = false;
+
 	InitScanner(data);
 	initChunk();
 	//Init the parser
 	parser.current = scanToken();
 	//Call execute untill eof
 
-	for (;;) {
-		//parse the line
-		execute();
-		//Expected semi colon at the end
-		consume(TOKEN_SEMICOLON, "Semicolon not found.");
-		if (parser.current.type == TOKEN_EOF)
-			break;
-	}
+	//Compile all declarations
+
+	declaration();
+	declaration();
 
 	return getChunk();
+}
+
+void declaration() 
+{
+	switch (parser.current.type) 
+	{
+	case TOKEN_FUNCTION: advance(); function(); break;
+	case TOKEN_VAR_IDENTIFIER: advance(); var();
+	}
+}
+
+bool checkErrorStatus() 
+{
+	return parser.isError;
 }
 
 void advance() 
@@ -90,7 +114,8 @@ void consume(Token_Type type, const char* message)
 
 void error(const char* message)
 {
-	printf("An error has occured: %s\n", message);
+	parser.isError = true;
+	printf("An error has occured on line %i: %s\n", getLine(), message);
 }
 
 void execute() 
@@ -162,6 +187,84 @@ void binary()
 		default:
 			error("unreachable code has been hit in Binary().");
 	}
+}
+
+void prefixVar() 
+{
+	emitOpCode(OP_LOAD_VAR);
+	std::string s(parser.previous.start, parser.previous.length);
+	if (stringToVarLocation.find(s) == stringToVarLocation.end()) {
+		// not found
+		error("The variable was not declared");
+	}
+	else {
+		// found
+		emitShort(stringToVarLocation[s]);
+	}
+}
+
+void function() 
+{
+	//Consume name token
+	const char* name = parser.current.start;
+	consume(TOKEN_VAR_IDENTIFIER, "Expected function name.");
+	//Consume open paren
+	consume(TOKEN_LEFT_PAREN, "Function not fallowed by '('.");
+	//Variables? Not doing this yet, will come back to
+	//Consume close paren
+	consume(TOKEN_RIGHT_PAREN, "Expected ')'.");
+	//Consume open brace
+	consume(TOKEN_LEFT_BRACE, "Expected '{'.");
+	//Add the function variable
+	uint16_t i = addFunction(name);
+	stringToVarLocation.insert({ std::string(name), i});
+	//Compile expressions untill '}' is hit
+	while (parser.current.type != TOKEN_RIGHT_BRACE) 
+	{
+		execute();
+		consume(TOKEN_SEMICOLON, "Semicolon not found.");
+	}
+	consume(TOKEN_RIGHT_BRACE, "Expected '}'.");
+}
+
+void var() 
+{
+	//Consume name token
+	const char* name = parser.current.start;
+	int name_length = parser.current.length;
+	int varLoc;
+	Variable v;
+	consume(TOKEN_VAR_IDENTIFIER, "Expected variable name name.");
+	//Check if a value should be assigned
+	if (parser.current.type == TOKEN_EQUAL) {
+		advance();
+		switch (parser.current.type) {
+		case TOKEN_NUMBER: 
+			v.type = VAR_DOUBLE;
+			v.data.number = strtod(parser.current.start, NULL);
+			break;
+		}
+		advance();
+	} else {
+		v.type = VAR_NONE;
+	}
+
+	uint16_t i = addVariable(v);
+	stringToVarLocation.insert({ std::string(name, name_length), i });
+
+	consume(TOKEN_SEMICOLON, "Expected ';'");
+}
+
+void grouping() 
+{
+	execute();
+	consume(TOKEN_RIGHT_PAREN, "Right paran not found.");
+}
+
+void brace() 
+{
+	execute();
+	consume(TOKEN_RIGHT_BRACE, "Right brace not found.");
 }
 
 /*********************************************

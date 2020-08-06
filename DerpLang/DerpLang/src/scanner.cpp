@@ -41,6 +41,11 @@ void InitScanner(const char* line)
 	identifierMap.insert(std::pair<std::string, Token_Type>("print",    TOKEN_PRINT));
 }
 
+int getLine() 
+{
+	return scanner.line;
+}
+
 //Scans for the next token
 Token scanToken() 
 {
@@ -65,6 +70,9 @@ Token scanToken()
 	case '/': return makeToken(TOKEN_SLASH);
 	case '*': return makeToken(TOKEN_STAR);
 	case ';': return makeToken(TOKEN_SEMICOLON);
+	case '{': return makeToken(TOKEN_LEFT_BRACE);
+	case '}': return makeToken(TOKEN_RIGHT_BRACE);
+	case '=': return makeToken(TOKEN_EQUAL);
 	}
 
 	return errorToken("No matching token type.");
@@ -86,7 +94,7 @@ Token_Type identifierType()
 		s.push_back(scanner.start[i]);
 	if (identifierMap.find(s) == identifierMap.end()) {
 		// not found
-		return TOKEN_GENERAL_ID;
+		return TOKEN_VAR_IDENTIFIER;
 	}
 	else {
 		// found

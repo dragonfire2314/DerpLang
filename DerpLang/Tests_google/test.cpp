@@ -25,29 +25,29 @@ TEST(Scanner, print_subtration) {
     InitScanner(program);
 
     EXPECT_EQ(scanToken().type, TOKEN_PRINT);
-    EXPECT_EQ(scanToken().type, TOKEN_GENERAL_ID);
+    EXPECT_EQ(scanToken().type, TOKEN_VAR_IDENTIFIER);
     EXPECT_EQ(scanToken().type, TOKEN_MINUS);
     EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
     EXPECT_EQ(scanToken().type, TOKEN_SEMICOLON);
 }
 
-TEST(SingleLine, print_addition) {
-    const char* program = "print 1 + 5;";
+TEST(Scanner, paren) {
+    const char* program = "(1 + 2)";
 
-    Chunk c = compile(program);
+    InitScanner(program);
 
-    EXPECT_EQ(c.byteCode[0], OP_CONSTANT);
-    EXPECT_EQ(c.byteCode[3], OP_CONSTANT);
-    EXPECT_EQ(c.byteCode[6], OP_ADD);
-    EXPECT_EQ(c.byteCode[7], OP_PRINT);
-
-    EXPECT_EQ(runChunk(c), "6.000000\n");
+    EXPECT_EQ(scanToken().type, TOKEN_LEFT_PAREN);
+    EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
+    EXPECT_EQ(scanToken().type, TOKEN_PLUS);
+    EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
+    EXPECT_EQ(scanToken().type, TOKEN_RIGHT_PAREN);
 }
 
-TEST(SingleLine, multiple_binary_operators) {
-    const char* program = "print 1 + 2 + 3 + 4;";
+TEST(Single_function, multiple_binary_operators) {
+    const char* program = "function test(){print 1 + 2 + 3 + 4;}";
 
     Chunk c = compile(program);
 
+    EXPECT_FALSE(checkErrorStatus());
     EXPECT_EQ(runChunk(c), "10.000000\n");
 }

@@ -1,0 +1,9 @@
+var apple = 3;
+
+function main()
+{
+	print 1;
+	print 2;
+	print 3 * 7;
+	print apple;
+}

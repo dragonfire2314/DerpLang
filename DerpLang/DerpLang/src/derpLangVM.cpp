@@ -31,7 +31,25 @@ std::string runChunk(Chunk chunk)
 		case OP_ADD:
 			f1 = st.top(); st.pop();
 			f2 = st.top(); st.pop();
-			st.push(f1 + f2);
+			st.push(f2 + f1);
+			ip++;
+			break;
+		case OP_SUB:
+			f1 = st.top(); st.pop();
+			f2 = st.top(); st.pop();
+			st.push(f2 - f1);
+			ip++;
+			break;
+		case OP_MULT:
+			f1 = st.top(); st.pop();
+			f2 = st.top(); st.pop();
+			st.push(f2 * f1);
+			ip++;
+			break;
+		case OP_DIV:
+			f1 = st.top(); st.pop();
+			f2 = st.top(); st.pop();
+			st.push(f2 / f1);
 			ip++;
 			break;
 		case OP_PRINT:

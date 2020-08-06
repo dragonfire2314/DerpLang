@@ -1,5 +1,9 @@
 #pragma once
 
+#include <stdint.h>
+#include <vector>
+#include <string>
+
 enum Byte_Code {
 	OP_NOP,
 	//Arithmetic
@@ -9,6 +13,8 @@ enum Byte_Code {
 	OP_MULT,
 	//Constants
 	OP_CONSTANT, //3 bytes (OP_CONSTANT w/ 2 byes as look up for value)
+	//Variable
+	OP_LOAD_VAR,
 	//Functions
 	OP_PRINT
 	//Control
@@ -16,6 +22,7 @@ enum Byte_Code {
 
 enum Token_Type {
 	TOKEN_NONE,
+	TOKEN_EQUAL,
 
 	//Binary
 	TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH,
@@ -41,7 +48,7 @@ enum Token_Type {
 
 	//Other
 	TOKEN_EOF,
-	TOKEN_GENERAL_ID,
+	TOKEN_VAR_IDENTIFIER,
 	TOKEN_ERROR
 };
 
@@ -77,4 +84,54 @@ struct CallEntry {
 struct Parser {
 	Token current;
 	Token previous;
+
+	bool isError = false;
+};
+
+/**************************************
+	Variable Stuff
+**************************************/
+enum Obj_Type {
+	OBJ_STRING,
+	OBJ_FUNCTION
+};
+
+struct Obj {
+	Obj_Type type;
+};
+
+struct Chunk {
+	std::vector<uint8_t> byteCode;
+	std::vector<float> constantData;
+};
+
+struct String : Obj {
+	int length;
+	char* data;
+};
+
+struct Function : Obj
+{
+	Chunk chunk;
+
+	std::string name;
+};
+
+
+enum Variable_Type {
+	VAR_NONE,
+	VAR_DOUBLE,
+	VAR_BOOLEAN,
+	VAR_OBJ
+};
+
+union Variable_Data {
+	size_t number;
+	bool boolean;
+	Obj* obj;
+};
+
+struct Variable {
+	Variable_Type type;
+	Variable_Data data;
 };

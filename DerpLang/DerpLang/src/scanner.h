@@ -8,3 +8,5 @@
 void InitScanner(const char* line);
 
 Token scanToken();
+
+int getLine();
