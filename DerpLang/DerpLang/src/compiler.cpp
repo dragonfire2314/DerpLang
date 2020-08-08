@@ -23,7 +23,8 @@ void advance();
 void declaration();
 void brace();
 void prefixVar();
-void var();
+void localVar();
+void globalVar();
 
 //Rule table
 CallEntry rules[] = {
@@ -50,6 +51,7 @@ CallEntry rules[] = {
 	{number, NULL, PREC_NONE},		//TOKEN_NUMBER
 
 	{print, NULL, PREC_NONE},		//TOKEN_PRINT
+	{localVar, NULL, PREC_NONE},		//TOKEN_VAR
 	 
 	{NULL, NULL, PREC_NONE},		//TOKEN_EOF
 	{prefixVar, NULL, PREC_NONE},	//TOKEN_VAR_IDENTIFIER
@@ -60,22 +62,26 @@ Parser parser;
 
 std::unordered_map<std::string, uint16_t> stringToVarLocation;
 
-Chunk compile(const char* data) 
+Program compile(const char* data) 
 {
+	clearProgram();
+
 	parser.isError = false;
 
 	InitScanner(data);
-	initChunk();
 	//Init the parser
 	parser.current = scanToken();
 	//Call execute untill eof
 
 	//Compile all declarations
 
-	declaration();
-	declaration();
+	for (;;) {
+		declaration();
+		if (parser.current.type == TOKEN_EOF)
+			break;
+	}
 
-	return getChunk();
+	return getProgram();
 }
 
 void declaration() 
@@ -83,7 +89,7 @@ void declaration()
 	switch (parser.current.type) 
 	{
 	case TOKEN_FUNCTION: advance(); function(); break;
-	case TOKEN_VAR_IDENTIFIER: advance(); var();
+	case TOKEN_VAR: advance(); globalVar();
 	}
 }
 
@@ -160,14 +166,34 @@ void print()
 	emitOpCode(OP_PRINT);
 }
 
+void localVar() 
+{
+	//Consume name
+	std::string name(parser.current.start, parser.current.length);
+	consume(TOKEN_VAR_IDENTIFIER, "Expected an indentifier.");
+	//Make the variable
+	Variable v;
+	v.type = VAR_NONE;
+	createLocalVar(name, v);
+	//Determine if data should be stored in the var
+	if (parser.current.type == TOKEN_EQUAL) {
+		consume(TOKEN_EQUAL, "Should not be displayed, lacalVar().");
+		execute();
+		emitOpCode(OP_STORE_LOCAL_VAR);
+		uint16_t index;
+		isLocalVar(name, index);
+		emitShort(index);
+	}
+}
+
 void number() 
 {
 	//Get the constant
-	float value = strtof(parser.previous.start, NULL);
+	double value = strtof(parser.previous.start, NULL);
 	//Emit the opcode
 	emitOpCode(OP_CONSTANT);
 	//Store the constant in the chunk
-	uint16_t loc = writeChunkConstantData((uint32_t)value);
+	uint16_t loc = writeChunkConstantData(makeVariable(value));
 	//Emit the loaction in the chunk constant data
 	emitShort(loc);
 }
@@ -191,14 +217,21 @@ void binary()
 
 void prefixVar() 
 {
-	emitOpCode(OP_LOAD_VAR);
 	std::string s(parser.previous.start, parser.previous.length);
+	//Look for variable globaly, if not found look for locally
 	if (stringToVarLocation.find(s) == stringToVarLocation.end()) {
 		// not found
-		error("The variable was not declared");
+		//Check for variable locally
+		uint16_t index;
+		if (isLocalVar(s, index)) {
+			//Is local
+			emitOpCode(OP_LOAD_LOCAL_VAR);
+			emitShort(index);
+		} else error("The variable was not declared");
 	}
 	else {
 		// found
+		emitOpCode(OP_LOAD_GLOBAL_VAR);
 		emitShort(stringToVarLocation[s]);
 	}
 }
@@ -206,7 +239,7 @@ void prefixVar()
 void function() 
 {
 	//Consume name token
-	const char* name = parser.current.start;
+	std::string name(parser.current.start, parser.current.length);
 	consume(TOKEN_VAR_IDENTIFIER, "Expected function name.");
 	//Consume open paren
 	consume(TOKEN_LEFT_PAREN, "Function not fallowed by '('.");
@@ -216,8 +249,8 @@ void function()
 	//Consume open brace
 	consume(TOKEN_LEFT_BRACE, "Expected '{'.");
 	//Add the function variable
-	uint16_t i = addFunction(name);
-	stringToVarLocation.insert({ std::string(name), i});
+	uint16_t i = addFunction(name.c_str());
+	stringToVarLocation.insert({ name, i});
 	//Compile expressions untill '}' is hit
 	while (parser.current.type != TOKEN_RIGHT_BRACE) 
 	{
@@ -227,7 +260,7 @@ void function()
 	consume(TOKEN_RIGHT_BRACE, "Expected '}'.");
 }
 
-void var() 
+void globalVar() 
 {
 	//Consume name token
 	const char* name = parser.current.start;

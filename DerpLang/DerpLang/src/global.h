@@ -14,7 +14,9 @@ enum Byte_Code {
 	//Constants
 	OP_CONSTANT, //3 bytes (OP_CONSTANT w/ 2 byes as look up for value)
 	//Variable
-	OP_LOAD_VAR,
+	OP_LOAD_GLOBAL_VAR,
+	OP_LOAD_LOCAL_VAR,
+	OP_STORE_LOCAL_VAR,
 	//Functions
 	OP_PRINT
 	//Control
@@ -45,6 +47,9 @@ enum Token_Type {
 
 	//Commands
 	TOKEN_PRINT,
+
+	//Variables
+	TOKEN_VAR,
 
 	//Other
 	TOKEN_EOF,
@@ -91,18 +96,18 @@ struct Parser {
 /**************************************
 	Variable Stuff
 **************************************/
-enum Obj_Type {
-	OBJ_STRING,
-	OBJ_FUNCTION
-};
 
-struct Obj {
-	Obj_Type type;
+#include "variable.h"
+
+struct Program {
+	std::vector<Variable> vars;
+	uint32_t mainIndex;
 };
 
 struct Chunk {
 	std::vector<uint8_t> byteCode;
-	std::vector<float> constantData;
+	std::vector<Variable> constantData;
+	std::vector<Variable> variableData;
 };
 
 struct String : Obj {
@@ -115,23 +120,4 @@ struct Function : Obj
 	Chunk chunk;
 
 	std::string name;
-};
-
-
-enum Variable_Type {
-	VAR_NONE,
-	VAR_DOUBLE,
-	VAR_BOOLEAN,
-	VAR_OBJ
-};
-
-union Variable_Data {
-	size_t number;
-	bool boolean;
-	Obj* obj;
-};
-
-struct Variable {
-	Variable_Type type;
-	Variable_Data data;
 };

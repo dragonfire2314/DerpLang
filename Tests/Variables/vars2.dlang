@@ -1,0 +1,6 @@
+function main()
+{
+    var foo = 4;
+    print foo;
+    print foo * 2;   
+}

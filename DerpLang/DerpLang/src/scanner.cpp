@@ -38,7 +38,8 @@ void InitScanner(const char* line)
 	identifierMap.insert(std::pair<std::string, Token_Type>("if",       TOKEN_IF));
 	identifierMap.insert(std::pair<std::string, Token_Type>("else",     TOKEN_ELSE));
 	identifierMap.insert(std::pair<std::string, Token_Type>("function", TOKEN_FUNCTION));
-	identifierMap.insert(std::pair<std::string, Token_Type>("print",    TOKEN_PRINT));
+	identifierMap.insert(std::pair<std::string, Token_Type>("print",	TOKEN_PRINT));
+	identifierMap.insert(std::pair<std::string, Token_Type>("var",		TOKEN_VAR));
 }
 
 int getLine() 

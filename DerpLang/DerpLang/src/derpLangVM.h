@@ -4,4 +4,4 @@
 
 #include <string>
 
-std::string runChunk(Chunk chunk);
+std::string runProgram(Program program);

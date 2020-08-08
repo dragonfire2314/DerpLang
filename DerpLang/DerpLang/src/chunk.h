@@ -6,9 +6,15 @@ uint16_t addVariable(Variable v);
 uint16_t addFunction(const char* name);
 
 void writeChunkByteCode(uint8_t data);
-uint16_t writeChunkConstantData(uint32_t data);
-Chunk getChunk();
 
-void initChunk();
+Variable makeVariable(double number);
+Variable makeVariable(bool boolean);
+Variable makeVariable();
 
-std::vector<uint8_t> generateByteCode();
+uint16_t writeChunkConstantData(Variable data);
+Program getProgram();
+void clearProgram();
+
+void clearLocalVarList();
+void createLocalVar(std::string name, Variable data);
+bool isLocalVar(std::string varName, uint16_t& index);

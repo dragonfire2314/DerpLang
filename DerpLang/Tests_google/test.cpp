@@ -7,47 +7,79 @@
 #include <string>
 #include <fstream>
 #include <streambuf>
-TEST(Scanner, print_addition) {
-    const char* program = "print 1 + 2;";
-    
-    InitScanner(program);
 
-    EXPECT_EQ(scanToken().type, TOKEN_PRINT);
-    EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
-    EXPECT_EQ(scanToken().type, TOKEN_PLUS);
-    EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
-    EXPECT_EQ(scanToken().type, TOKEN_SEMICOLON);
+TEST(Basic, print) {
+
+	std::ifstream t("../../Tests/Basic/print.dlang");
+	std::string input((std::istreambuf_iterator<char>(t)),
+		std::istreambuf_iterator<char>());
+
+	//Compiler
+	Program p = compile(input.c_str());
+
+	//Virtual Machine
+	EXPECT_FALSE(checkErrorStatus());
+
+	std::string ret = runProgram(p);
+
+	std::string expected = "1.000000\n";
+
+	EXPECT_EQ(ret, expected);
 }
 
-TEST(Scanner, print_subtration) {
-    const char* program = "print apple - 2;";
+TEST(Basic, print_mult) {
 
-    InitScanner(program);
+	std::ifstream t("../../Tests/Basic/print_mult.dlang");
+	std::string input((std::istreambuf_iterator<char>(t)),
+		std::istreambuf_iterator<char>());
 
-    EXPECT_EQ(scanToken().type, TOKEN_PRINT);
-    EXPECT_EQ(scanToken().type, TOKEN_VAR_IDENTIFIER);
-    EXPECT_EQ(scanToken().type, TOKEN_MINUS);
-    EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
-    EXPECT_EQ(scanToken().type, TOKEN_SEMICOLON);
+	//Compiler
+	Program p = compile(input.c_str());
+
+	//Virtual Machine
+	EXPECT_FALSE(checkErrorStatus());
+
+	std::string ret = runProgram(p);
+
+	std::string expected = "9.000000\n";
+
+	EXPECT_EQ(ret, expected);
 }
 
-TEST(Scanner, paren) {
-    const char* program = "(1 + 2)";
+TEST(Variables, vars1) {
 
-    InitScanner(program);
+	std::ifstream t("../../Tests/Variables/vars1.dlang");
+	std::string input((std::istreambuf_iterator<char>(t)),
+		std::istreambuf_iterator<char>());
 
-    EXPECT_EQ(scanToken().type, TOKEN_LEFT_PAREN);
-    EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
-    EXPECT_EQ(scanToken().type, TOKEN_PLUS);
-    EXPECT_EQ(scanToken().type, TOKEN_NUMBER);
-    EXPECT_EQ(scanToken().type, TOKEN_RIGHT_PAREN);
+	//Compiler
+	Program p = compile(input.c_str());
+
+	//Virtual Machine
+	EXPECT_FALSE(checkErrorStatus());
+
+	std::string ret = runProgram(p);
+
+	std::string expected = "2.000000\n";
+
+	EXPECT_EQ(ret, expected);
 }
 
-TEST(Single_function, multiple_binary_operators) {
-    const char* program = "function test(){print 1 + 2 + 3 + 4;}";
+TEST(Variables, vars2) {
 
-    Chunk c = compile(program);
+	std::ifstream t("../../Tests/Variables/vars2.dlang");
+	std::string input((std::istreambuf_iterator<char>(t)),
+		std::istreambuf_iterator<char>());
 
-    EXPECT_FALSE(checkErrorStatus());
-    EXPECT_EQ(runChunk(c), "10.000000\n");
+	//Compiler
+	Program p = compile(input.c_str());
+
+	//Virtual Machine
+	EXPECT_FALSE(checkErrorStatus());
+
+	std::string ret = runProgram(p);
+
+	std::string expected = "4.000000\n8.000000\n";
+
+	EXPECT_EQ(ret, expected);
 }

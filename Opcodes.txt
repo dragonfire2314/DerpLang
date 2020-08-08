@@ -1,0 +1,12 @@
+Byte code format information
+----------------------------------
+OPCODES
+---------
+NOP		-No operation
+ADD		-Adds s2 + s1
+SUB		-Subtracts s2 - s1
+MULT		-Multiplies s2 * s1
+DIV		-Divided s2 / s1
+CONSTANT	-Load a constant from the constants and pushes it to the stack
+LOADV		-Load a variable from the variables and pushes it to the stack
+PRINT		-Prints the most recent variable on the stack

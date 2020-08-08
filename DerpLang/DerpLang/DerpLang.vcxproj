@@ -24,6 +24,7 @@
     <ClCompile Include="src\derpLangVM.cpp" />
     <ClCompile Include="src\scanner.cpp" />
     <ClCompile Include="src\Source.cpp" />
+    <ClCompile Include="src\variable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\chunk.h" />
@@ -31,6 +32,7 @@
     <ClInclude Include="src\derpLangVM.h" />
     <ClInclude Include="src\global.h" />
     <ClInclude Include="src\scanner.h" />
+    <ClInclude Include="src\variable.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="test.dlang" />

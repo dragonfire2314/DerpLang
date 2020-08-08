@@ -40,6 +40,7 @@
     <ClCompile Include="..\DerpLang\src\compiler.cpp" />
     <ClCompile Include="..\DerpLang\src\derpLangVM.cpp" />
     <ClCompile Include="..\DerpLang\src\scanner.cpp" />
+    <ClCompile Include="..\DerpLang\src\variable.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -55,6 +56,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="print.dlang" />
     <None Include="Tests\single_line_arithmetic.dlang" />
     <None Include="Tests\single_line_subtraction.dlang" />
   </ItemGroup>

@@ -4,18 +4,100 @@
 
 #include <stack>
 #include <string>
+#include <iostream>
 
-std::string runChunk(Chunk chunk) 
+//#define MAKE_VAR(x)
+
+void printVariable(std::string& out, Variable v);
+
+std::string runProgram(Program program)
 {
 	//return part
 	std::string ret;
 
-	std::stack<float> st;
+	std::stack<Variable> varStack;
 
-	float f1, f2;
+	uint32_t ip = 0;
+	Chunk* chunk = &((Function*)program.vars[program.mainIndex].data.obj)->chunk;
+
+	//Variables for the opcodes to use
+	Variable v1, v2;
+	uint8_t ub1, ub2;
+
+	//Find main
+	for (;;) 
+	{
+		if (ip >= chunk->byteCode.size())
+			break;
+
+		uint8_t opcode = chunk->byteCode[ip];
+
+		switch (opcode) 
+		{
+		case OP_CONSTANT:
+			ub1 = chunk->byteCode[ip + 1];
+			ub2 = chunk->byteCode[ip + 2];
+			varStack.push(chunk->constantData[(ub1 << 8) | ub2]);
+			ip += 3;
+			break;
+		case OP_PRINT:
+			v1 = varStack.top();
+			varStack.pop();
+			printVariable(ret, v1);
+			ip += 1;
+			break;
+		case OP_MULT:
+			v1 = varStack.top();
+			varStack.pop();
+			v2 = varStack.top();
+			varStack.pop();
+			varStack.push(v2 * v1);
+			ip += 1;
+			break;
+		case OP_LOAD_GLOBAL_VAR:
+			ub1 = chunk->byteCode[ip + 1];
+			ub2 = chunk->byteCode[ip + 2];
+			varStack.push(program.vars[(ub1 << 8) | ub2]);
+			ip += 3;
+			break;
+		case OP_LOAD_LOCAL_VAR:
+			ub1 = chunk->byteCode[ip + 1];
+			ub2 = chunk->byteCode[ip + 2];
+			varStack.push(chunk->variableData[(ub1 << 8) | ub2]);
+			ip += 3;
+			break;
+		case OP_STORE_LOCAL_VAR:
+			ub1 = chunk->byteCode[ip + 1];
+			ub2 = chunk->byteCode[ip + 2];
+			v1 = varStack.top();
+			varStack.pop();
+			chunk->variableData[(ub1 << 8) | ub2] = v1;
+			ip += 3;
+			break;
+		default:
+			printf("Opcode not implemented: %x.\n", opcode);
+			std::cin.get();
+		}
+	}
+
+	return ret;
+}
+
+void printVariable(std::string& out, Variable v) 
+{
+	switch (v.type) 
+	{
+	case VAR_DOUBLE: out += std::to_string(v.data.number) + '\n'; break;
+	case VAR_BOOLEAN: out += std::to_string(v.data.boolean) + '\n'; break;
+	case VAR_NONE: out += "NULL\n"; break;
+	}
+}
+
+/*
+float f1, f2;
 	uint16_t index;
 
-	for (int ip = 0; ip < chunk.byteCode.size();) 
+	for (int ip = 0; ip < chunk.byteCode.size();)
 	{
 		//Fetch
 		uint8_t opcode = chunk.byteCode[ip];
@@ -60,6 +142,4 @@ std::string runChunk(Chunk chunk)
 			break;
 		}
 	}
-
-	return ret;
-}
+*/

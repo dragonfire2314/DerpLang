@@ -20,15 +20,11 @@ int main(int argc, char* argv[])
 	printf("%s\n\n\n", input.c_str());
 
 	//Compiler
-	Chunk c = compile(input.c_str());
-
-	std::vector<uint8_t> p = generateByteCode();
-	for (int i = 0; i < p.size(); i++)
-		printf("%02x ", p[i]);
+	Program p = compile(input.c_str());
 
 	//Virtual Machine
-	/*if (!checkErrorStatus()) {
-		std::string ret = runChunk(c);
+	if (!checkErrorStatus()) {
+		std::string ret = runProgram(p);
 		printf("%s", ret.c_str());
-	}*/
+	}
 }

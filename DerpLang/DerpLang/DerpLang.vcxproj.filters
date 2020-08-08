@@ -30,6 +30,9 @@
     <ClCompile Include="src\derpLangVM.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\variable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\scanner.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\derpLangVM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\variable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,19 +2,40 @@
 #include "global.h"
 
 #include <vector>
+#include <unordered_map>
 
-std::vector<Variable> vars;
+void clearLocalVarList();
+
+Program prog;
 
 Chunk* currentChunk;
 
+Program getProgram() 
+{
+	//Set the main pointer
+	for (int i = 0; i < prog.vars.size(); i++)
+		if (prog.vars[i].type == VAR_OBJ && prog.vars[i].data.obj->type == OBJ_FUNCTION)
+			if (((Function*)prog.vars[i].data.obj)->name == "main")
+				prog.mainIndex = i;
+
+	return prog;
+}
+
+void clearProgram() 
+{
+	prog.vars.clear();
+}
+
 uint16_t addVariable(Variable v)
 {
-	vars.push_back(v);
-	return vars.size() - 1;
+	prog.vars.push_back(v);
+	return prog.vars.size() - 1;
 }
 
 uint16_t addFunction(const char* name)
 {
+	clearLocalVarList();
+
 	Variable v;
 	v.type = VAR_OBJ;
 	v.data.obj = new Function();
@@ -25,22 +46,37 @@ uint16_t addFunction(const char* name)
 	return addVariable(v);
 }
 
-void initChunk() 
-{
-	
-}
-
-Chunk getChunk() 
-{
-	return *currentChunk;
-}
-
 void writeChunkByteCode(uint8_t data)
 {
 	currentChunk->byteCode.push_back(data);
 }
 
-uint16_t writeChunkConstantData(uint32_t data)
+Variable makeVariable(double number)
+{
+	Variable v;
+	v.data.number = number;
+	v.type = VAR_DOUBLE;
+	return v;
+}
+
+Variable makeVariable(bool boolean)
+{
+	Variable v;
+	v.data.boolean = boolean;
+	v.type = VAR_BOOLEAN;
+	return v;
+}
+
+
+Variable makeVariable()
+{
+	Variable v;
+	v.type = VAR_NONE;
+	return v;
+}
+
+
+uint16_t writeChunkConstantData(Variable data)
 {
 	if (currentChunk->constantData.size() + 1 > UINT16_MAX) {
 		printf("Error the constant data storage for this chunk is full.\n");
@@ -49,89 +85,39 @@ uint16_t writeChunkConstantData(uint32_t data)
 	return (uint16_t)(currentChunk->constantData.size() - 1);
 }
 
+/***********************************
+	Local Variables
+***********************************/
 
+std::unordered_map<std::string, uint16_t> localVarNameToIndex;
 
-
-/************************************
-	Byte Code output generator
-************************************/
-void copyStandardVariable(std::vector<uint8_t>* dest, Variable* src);
-void copyFunctionObject(std::vector<uint8_t>* dest, Variable* src);
-
-std::vector<uint8_t> generateByteCode() 
+void clearLocalVarList() 
 {
-	std::vector<uint8_t> ret;
-
-	for (auto x : vars) 
-	{
-		if (x.type == VAR_OBJ)
-		{
-			switch (x.data.obj->type) 
-			{
-			case OBJ_FUNCTION:
-				copyFunctionObject(&ret, &x);
-				break;
-			case OBJ_STRING:
-				break;
-			}
-		}
-		else 
-		{
-			//Copy var to output array
-			copyStandardVariable(&ret, &x);
-		}
-	}
-
-	return ret;
+	localVarNameToIndex.clear();
 }
 
-/*
-Function btyecode header as fallows
-	-4Bytes (Offset to code)
-	-4Bytes (Offset to constant data)
-	-?Bytes (cstring of funtion name)
-*/
-void copyFunctionObject(std::vector<uint8_t>* dest, Variable* src) 
+void createLocalVar(std::string name, Variable data) 
 {
-	//Push back header for the function
-	std::string str = ((Function*)src->data.obj)->name;
-	uint32_t codeOffset = 4 + str.length();
-	//Code Offset
-	dest->push_back((codeOffset & 0xFF000000) >> 24);
-	dest->push_back((codeOffset & 0x00FF0000) >> 16);
-	dest->push_back((codeOffset & 0x0000FF00) >> 8);
-	dest->push_back((codeOffset & 0x000000FF));
-	//Const Offset
-	uint32_t constOffset = codeOffset + ((Function*)src->data.obj)->chunk.byteCode.size();
-	dest->push_back((constOffset & 0xFF000000) >> 24);
-	dest->push_back((constOffset & 0x00FF0000) >> 16);
-	dest->push_back((constOffset & 0x0000FF00) >> 8);
-	dest->push_back((constOffset & 0x000000FF));
-	//Name
-	for (int i = 0; i < str.length(); i++)
-	{
-		dest->push_back(str[i]);
+	if (localVarNameToIndex.find(name) == localVarNameToIndex.end()) {
+		// not found
+		currentChunk->variableData.push_back(data);
+		localVarNameToIndex.insert({name, currentChunk->variableData.size() - 1});
 	}
-	//Push back the code
-	Chunk* c = &((Function*)src->data.obj)->chunk;
-	for (int i = 0; i < c->byteCode.size(); i++)
-	{
-		dest->push_back(c->byteCode[i]);
-	}
-	//Push back the constant data
-	for (int i = 0; i < c->constantData.size(); i++)
-	{
-		dest->push_back((uint8_t)(((uint32_t)(c->constantData[i])) & 0xFF000000) >> 24);
-		dest->push_back((uint8_t)(((uint32_t)(c->constantData[i])) & 0x00FF0000) >> 16);
-		dest->push_back((uint8_t)(((uint32_t)(c->constantData[i])) & 0x0000FF00) >> 8);
-		dest->push_back((uint8_t)(((uint32_t)(c->constantData[i])) & 0x000000FF));
+	else {
+		// found
+		//Call a compile time error
 	}
 }
 
-void copyStandardVariable(std::vector<uint8_t>* dest, Variable* src)
+bool isLocalVar(std::string varName, uint16_t& index)
 {
-	for (int i = 0; i < sizeof(Variable); i++) 
-	{
-		dest->push_back(((uint8_t*)src)[i]);
+	if (localVarNameToIndex.find(varName) == localVarNameToIndex.end()) {
+		// not found
+		//Call a compile time error
+	}
+	else {
+		// found
+		index = localVarNameToIndex[varName];
+		return true;
 	}
 }

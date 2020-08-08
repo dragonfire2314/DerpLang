@@ -1,9 +1,14 @@
 var apple = 3;
+var orange = 2;
 
 function main()
 {
-	print 1;
+	var letter = 4;
+	print letter;
+
+	print 1.2;
 	print 2;
 	print 3 * 7;
-	print apple;
+	print apple * orange;
 }
+
