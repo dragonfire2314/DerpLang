@@ -1,0 +1,10 @@
+for loop
+functions
+changing variable type
+strings
+classes
+more comparison operators
+function returns
+thread spinning
+lists
+dynamic arrays

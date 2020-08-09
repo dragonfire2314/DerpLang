@@ -1,14 +1,13 @@
-var apple = 3;
-var orange = 2;
-
 function main()
 {
-	var letter = 4;
-	print letter;
+    var foo = 5;
+    var bar = 6;
 
-	print 1.2;
-	print 2;
-	print 3 * 7;
-	print apple * orange;
+    if (foo == bar) {
+        print 1;
+    } else if (foo == 5) {
+        print 2;
+    } else {
+        print 3;
+    }
 }
-

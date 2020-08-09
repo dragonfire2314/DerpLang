@@ -1,0 +1,20 @@
+function main()
+{
+    var foo = 5;
+    var bar = 6;
+
+    if (foo == bar) 
+        print 1;
+    else
+        print 0;
+
+    if (foo != bar) { 
+        print 1;
+    }
+    else {
+        print 0;
+    }
+
+    if (foo == 5)
+        print 4;
+}

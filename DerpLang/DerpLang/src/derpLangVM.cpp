@@ -54,6 +54,30 @@ std::string runProgram(Program program)
 			varStack.push(v2 * v1);
 			ip += 1;
 			break;
+		case OP_DIV:
+			v1 = varStack.top();
+			varStack.pop();
+			v2 = varStack.top();
+			varStack.pop();
+			varStack.push(v2 / v1);
+			ip += 1;
+			break;
+		case OP_ADD:
+			v1 = varStack.top();
+			varStack.pop();
+			v2 = varStack.top();
+			varStack.pop();
+			varStack.push(v2 + v1);
+			ip += 1;
+			break;
+		case OP_SUB:
+			v1 = varStack.top();
+			varStack.pop();
+			v2 = varStack.top();
+			varStack.pop();
+			varStack.push(v2 - v1);
+			ip += 1;
+			break;
 		case OP_LOAD_GLOBAL_VAR:
 			ub1 = chunk->byteCode[ip + 1];
 			ub2 = chunk->byteCode[ip + 2];
@@ -74,6 +98,46 @@ std::string runProgram(Program program)
 			chunk->variableData[(ub1 << 8) | ub2] = v1;
 			ip += 3;
 			break;
+		case OP_STORE_GLOBAL_VAR:
+			ub1 = chunk->byteCode[ip + 1];
+			ub2 = chunk->byteCode[ip + 2];
+			v1 = varStack.top();
+			varStack.pop();
+			program.vars[(ub1 << 8) | ub2] = v1;
+			ip += 3;
+			break;
+		case OP_EQUAL:
+			v1 = varStack.top();
+			varStack.pop();
+			v2 = varStack.top();
+			varStack.pop();
+			varStack.push(v2 == v1);
+			ip += 1;
+			break;
+		case OP_NOT_EQUAL:
+			v1 = varStack.top();
+			varStack.pop();
+			v2 = varStack.top();
+			varStack.pop();
+			varStack.push(v2 != v1);
+			ip += 1;
+			break;
+		case OP_BRANCH_ON_FALSE:
+			v1 = varStack.top();
+			varStack.pop();
+			if (v1.type == VAR_BOOLEAN && v1.data.boolean == false) {
+				ub1 = chunk->byteCode[ip + 1];
+				ub2 = chunk->byteCode[ip + 2];
+				ip = (ub1 << 8) | ub2;
+				break;
+			}
+			ip += 3;
+			break;
+		case OP_JUMP:
+			ub1 = chunk->byteCode[ip + 1];
+			ub2 = chunk->byteCode[ip + 2];
+			ip = (ub1 << 8) | ub2;
+			break;
 		default:
 			printf("Opcode not implemented: %x.\n", opcode);
 			std::cin.get();
@@ -88,7 +152,7 @@ void printVariable(std::string& out, Variable v)
 	switch (v.type) 
 	{
 	case VAR_DOUBLE: out += std::to_string(v.data.number) + '\n'; break;
-	case VAR_BOOLEAN: out += std::to_string(v.data.boolean) + '\n'; break;
+	case VAR_BOOLEAN: if (v.data.boolean) out += "true\n"; else  out += "false\n"; break;
 	case VAR_NONE: out += "NULL\n"; break;
 	}
 }

@@ -17,9 +17,15 @@ enum Byte_Code {
 	OP_LOAD_GLOBAL_VAR,
 	OP_LOAD_LOCAL_VAR,
 	OP_STORE_LOCAL_VAR,
+	OP_STORE_GLOBAL_VAR,
+	//Comparison
+	OP_EQUAL,
+	OP_NOT_EQUAL,
 	//Functions
-	OP_PRINT
+	OP_PRINT,
 	//Control
+	OP_BRANCH_ON_FALSE,
+	OP_JUMP
 };
 
 enum Token_Type {
@@ -41,6 +47,10 @@ enum Token_Type {
 	TOKEN_LEFT_BRACE,
 	TOKEN_RIGHT_BRACE,
 	TOKEN_SEMICOLON,
+
+	//Comparison
+	TOKEN_EQUALIY,
+	TOKEN_NOT_EQUAL,
 
 	//Constant
 	TOKEN_NUMBER,

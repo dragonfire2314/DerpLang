@@ -30,4 +30,9 @@ struct Variable {
 	Variable(Variable_Type type, double data);
 	Variable(Variable_Type type, bool data);
 	Variable operator*(const Variable& rhs);
+	Variable operator-(const Variable& rhs);
+	Variable operator+(const Variable& rhs);
+	Variable operator/(const Variable& rhs);
+	Variable operator==(const Variable& rhs);
+	Variable operator!=(const Variable& rhs);
 };

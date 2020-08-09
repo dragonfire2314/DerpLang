@@ -1,0 +1,10 @@
+function main()
+{
+    var foo = 0;
+    var bar = 5;
+
+    while (foo != bar) {
+        print bar;
+        foo = foo + 1;
+    }
+}

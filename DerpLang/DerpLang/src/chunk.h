@@ -5,7 +5,9 @@
 uint16_t addVariable(Variable v);
 uint16_t addFunction(const char* name);
 
-void writeChunkByteCode(uint8_t data);
+uint32_t writeChunkByteCode(uint8_t data);
+void writeChunkByteCodeLocation(uint8_t data, uint32_t location);
+uint32_t getChuckByteCodeCurrentLocation();
 
 Variable makeVariable(double number);
 Variable makeVariable(bool boolean);

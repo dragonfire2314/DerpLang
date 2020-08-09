@@ -73,7 +73,10 @@ Token scanToken()
 	case ';': return makeToken(TOKEN_SEMICOLON);
 	case '{': return makeToken(TOKEN_LEFT_BRACE);
 	case '}': return makeToken(TOKEN_RIGHT_BRACE);
-	case '=': return makeToken(TOKEN_EQUAL);
+	case '=': if (peek() == '=') { advance(); return makeToken(TOKEN_EQUALIY); }
+			else { return makeToken(TOKEN_EQUAL); }
+	case '!': if (peek() == '=') { advance(); return makeToken(TOKEN_NOT_EQUAL); }
+			else { break; }
 	}
 
 	return errorToken("No matching token type.");

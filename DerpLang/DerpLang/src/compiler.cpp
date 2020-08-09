@@ -12,8 +12,8 @@ void number();
 void print();
 void binary();
 void emitShort(uint16_t data);
-void emitOpCode(Byte_Code opcode);
-void emitByte(uint8_t byte);
+uint32_t emitOpCode(Byte_Code opcode);
+uint32_t emitByte(uint8_t byte);
 void consume(Token_Type type, const char* message);
 void execute();
 void parsePrecedence(Precedence precedence);
@@ -25,6 +25,10 @@ void brace();
 void prefixVar();
 void localVar();
 void globalVar();
+void prefixIf();
+void prefixWhile();
+void comparison();
+void compileBrace();
 
 //Rule table
 CallEntry rules[] = {
@@ -36,9 +40,9 @@ CallEntry rules[] = {
 	{NULL, binary, PREC_FACTOR},	//TOKEN_STAR
 	{NULL, binary, PREC_FACTOR},	//TOKEN_SLASH
 
-	{NULL, NULL, PREC_NONE},		//TOKEN_WHILE
+	{prefixWhile, NULL, PREC_NONE},	//TOKEN_WHILE
 	{NULL, NULL, PREC_NONE},		//TOKEN_FOR
-	{NULL, NULL, PREC_NONE},		//TOKEN_IF
+	{prefixIf, NULL, PREC_NONE},	//TOKEN_IF
 	{NULL, NULL, PREC_NONE},		//TOKEN_ELSE
 
 	{NULL, NULL, PREC_NONE},		//TOKEN_FUNCTION
@@ -48,10 +52,13 @@ CallEntry rules[] = {
 	{NULL, NULL, PREC_NONE},		//TOKEN_RIGHT_BRACE
 	{NULL, NULL, PREC_NONE},		//TOKEN_SEMICOLON
 
+	{NULL, comparison, PREC_EQUALITY},//TOKEN_EQUALIY
+	{NULL, comparison, PREC_EQUALITY},//TOKEN_NOT_EQUAL
+
 	{number, NULL, PREC_NONE},		//TOKEN_NUMBER
 
 	{print, NULL, PREC_NONE},		//TOKEN_PRINT
-	{localVar, NULL, PREC_NONE},		//TOKEN_VAR
+	{localVar, NULL, PREC_NONE},	//TOKEN_VAR
 	 
 	{NULL, NULL, PREC_NONE},		//TOKEN_EOF
 	{prefixVar, NULL, PREC_NONE},	//TOKEN_VAR_IDENTIFIER
@@ -65,6 +72,7 @@ std::unordered_map<std::string, uint16_t> stringToVarLocation;
 Program compile(const char* data) 
 {
 	clearProgram();
+	stringToVarLocation.clear();
 
 	parser.isError = false;
 
@@ -171,6 +179,11 @@ void localVar()
 	//Consume name
 	std::string name(parser.current.start, parser.current.length);
 	consume(TOKEN_VAR_IDENTIFIER, "Expected an indentifier.");
+	//Check if var already exists globally
+	if (stringToVarLocation.find(name) != stringToVarLocation.end()) {
+		//found
+		error("Variable was redefined");
+	}
 	//Make the variable
 	Variable v;
 	v.type = VAR_NONE;
@@ -217,22 +230,142 @@ void binary()
 
 void prefixVar() 
 {
+	//Determine Var type
 	std::string s(parser.previous.start, parser.previous.length);
-	//Look for variable globaly, if not found look for locally
 	if (stringToVarLocation.find(s) == stringToVarLocation.end()) {
-		// not found
-		//Check for variable locally
 		uint16_t index;
 		if (isLocalVar(s, index)) {
 			//Is local
-			emitOpCode(OP_LOAD_LOCAL_VAR);
-			emitShort(index);
-		} else error("The variable was not declared");
+			//Check if next token is an equallity
+			if (parser.current.type == TOKEN_EQUAL) { //Storing
+				consume(TOKEN_EQUAL, "Should never happen prefixVar().");
+				execute();
+				emitOpCode(OP_STORE_LOCAL_VAR);
+				emitShort(index);
+			}
+			else { //Loading
+				emitOpCode(OP_LOAD_LOCAL_VAR);
+				emitShort(index);
+			}
+		}
+		else error("The variable was not declared");
 	}
 	else {
-		// found
-		emitOpCode(OP_LOAD_GLOBAL_VAR);
-		emitShort(stringToVarLocation[s]);
+		//Is global
+		if (parser.current.type == TOKEN_EQUAL) { //Storing
+			consume(TOKEN_EQUAL, "Should never happen prefixVar().");
+			execute();
+			emitOpCode(OP_STORE_GLOBAL_VAR);
+			emitShort(stringToVarLocation[s]);
+		}
+		else { //Loading
+			emitOpCode(OP_LOAD_GLOBAL_VAR);
+			emitShort(stringToVarLocation[s]);
+		}
+	}
+}
+
+void prefixWhile() 
+{
+	uint32_t topOfWhile = getChuckByteCodeCurrentLocation();
+	//Check for left paren
+	consume(TOKEN_LEFT_PAREN, "Expected '('");
+	execute();
+	//Check for right paren
+	consume(TOKEN_RIGHT_PAREN, "Expected ')'");
+	//Emit the branch if false opcode and location
+	emitOpCode(OP_BRANCH_ON_FALSE);
+	uint32_t highLoc = emitByte(0x00);
+	uint32_t lowLoc = emitByte(0x00);
+	uint32_t currentLoc;
+	//Check for left brace
+	if (parser.current.type == TOKEN_LEFT_BRACE) {
+		compileBrace();
+	}
+	else //No braces 
+	{
+		execute();
+		consume(TOKEN_SEMICOLON, "Semicolon not found.");
+	}
+	//Add jump back to top of while
+	emitOpCode(OP_JUMP);
+	emitByte((topOfWhile & 0xFF00) << 8);
+	emitByte(topOfWhile & 0xFF);
+	//Fix branch location
+	currentLoc = getChuckByteCodeCurrentLocation();
+	writeChunkByteCodeLocation((currentLoc & 0xFF00) >> 8, highLoc);
+	writeChunkByteCodeLocation(currentLoc & 0xFF, lowLoc);
+}
+
+void prefixIf()
+{
+	//Check for left paren
+	consume(TOKEN_LEFT_PAREN, "Expected '('");
+	execute();
+	//Check for right paren
+	consume(TOKEN_RIGHT_PAREN, "Expected ')'");
+	//Emit the branch if false opcode and location
+	emitOpCode(OP_BRANCH_ON_FALSE);
+	uint32_t highLoc = emitByte(0x00);
+	uint32_t lowLoc = emitByte(0x00);
+	uint32_t currentLoc;
+	//Compile code in braces
+	if (parser.current.type == TOKEN_LEFT_BRACE) {
+		compileBrace();
+	}
+	else //No braces 
+	{
+		execute();
+		consume(TOKEN_SEMICOLON, "Semicolon not found.");
+	}
+
+	//Check for else
+	if (parser.current.type != TOKEN_ELSE) {
+		//Set branch location to here when else dosen't exist
+		currentLoc = getChuckByteCodeCurrentLocation();
+		writeChunkByteCodeLocation((currentLoc & 0xFF00) >> 8, highLoc);
+		writeChunkByteCodeLocation(currentLoc & 0xFF, lowLoc);
+		return;
+	}
+	//Is else
+	uint16_t lowOld = lowLoc;
+	uint16_t highOld = highLoc;
+	//Push code to jump over else
+	emitOpCode(OP_JUMP);
+	highLoc = emitByte(0x00);
+	lowLoc = emitByte(0x00);
+	//Fix location for else jump
+	currentLoc = getChuckByteCodeCurrentLocation();
+	writeChunkByteCodeLocation((currentLoc & 0xFF00) >> 8, highOld);
+	writeChunkByteCodeLocation(currentLoc & 0xFF, lowOld);
+	//Consume the stuff for the else and compile it
+	consume(TOKEN_ELSE, "Should not happen perfixIf().");
+	if (parser.current.type == TOKEN_LEFT_BRACE) {
+		compileBrace();
+	}
+	else //No braces 
+	{
+		execute();
+		consume(TOKEN_SEMICOLON, "Semicolon not found.");
+	}
+	//Set jump location to here
+	currentLoc = getChuckByteCodeCurrentLocation();
+	writeChunkByteCodeLocation((currentLoc & 0xFF00) >> 8, highLoc);
+	writeChunkByteCodeLocation(currentLoc & 0xFF, lowLoc);
+}
+
+void comparison() 
+{
+	Token_Type operator_type = parser.previous.type;
+
+	Precedence p = lookupRule(parser.previous.type).precedence;
+	parsePrecedence((Precedence)(p + 1));
+
+	switch (operator_type) {
+	case TOKEN_EQUALIY:		emitOpCode(OP_EQUAL);		break;
+	case TOKEN_NOT_EQUAL:	emitOpCode(OP_NOT_EQUAL);	break;
+	default:
+		error("unreachable code has been hit in comparison().");
 	}
 }
 
@@ -246,18 +379,11 @@ void function()
 	//Variables? Not doing this yet, will come back to
 	//Consume close paren
 	consume(TOKEN_RIGHT_PAREN, "Expected ')'.");
-	//Consume open brace
-	consume(TOKEN_LEFT_BRACE, "Expected '{'.");
 	//Add the function variable
 	uint16_t i = addFunction(name.c_str());
 	stringToVarLocation.insert({ name, i});
 	//Compile expressions untill '}' is hit
-	while (parser.current.type != TOKEN_RIGHT_BRACE) 
-	{
-		execute();
-		consume(TOKEN_SEMICOLON, "Semicolon not found.");
-	}
-	consume(TOKEN_RIGHT_BRACE, "Expected '}'.");
+	compileBrace();
 }
 
 void globalVar() 
@@ -288,6 +414,23 @@ void globalVar()
 	consume(TOKEN_SEMICOLON, "Expected ';'");
 }
 
+void compileBrace()
+{
+	//Consume open brace
+	consume(TOKEN_LEFT_BRACE, "Expected '{'.");
+	while (parser.current.type != TOKEN_RIGHT_BRACE)
+	{
+		switch (parser.current.type) {
+		case TOKEN_WHILE:	consume(TOKEN_WHILE, "expected while?");	prefixWhile();	break;
+		case TOKEN_IF:	consume(TOKEN_IF, "expected if?");	prefixIf();		break;
+		default:
+			execute();
+			consume(TOKEN_SEMICOLON, "Semicolon not found.");
+		}
+	}
+	consume(TOKEN_RIGHT_BRACE, "Expected '}'.");
+}
+
 void grouping() 
 {
 	execute();
@@ -309,12 +452,12 @@ void emitShort(uint16_t data)
 	emitByte(data & 0xFF);
 }
 
-void emitOpCode(Byte_Code opcode)
+uint32_t emitOpCode(Byte_Code opcode)
 {
-	emitByte(opcode);
+	return emitByte(opcode);
 }
 
-void emitByte(uint8_t byte) 
+uint32_t emitByte(uint8_t byte) 
 {
-	writeChunkByteCode(byte);
+	return writeChunkByteCode(byte);
 }

@@ -46,9 +46,20 @@ uint16_t addFunction(const char* name)
 	return addVariable(v);
 }
 
-void writeChunkByteCode(uint8_t data)
+uint32_t writeChunkByteCode(uint8_t data)
 {
 	currentChunk->byteCode.push_back(data);
+	return currentChunk->byteCode.size() - 1;
+}
+
+void writeChunkByteCodeLocation(uint8_t data, uint32_t location) 
+{
+	currentChunk->byteCode[location] = data;
+}
+
+uint32_t getChuckByteCodeCurrentLocation()
+{
+	return currentChunk->byteCode.size();
 }
 
 Variable makeVariable(double number)

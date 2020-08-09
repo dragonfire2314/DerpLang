@@ -1,0 +1,11 @@
+var foo = 3;
+var bar = 6;
+
+function main()
+{
+    print foo * bar;
+    foo = foo + 2;
+    bar = foo + 2;
+    print foo;
+    print bar;
+}

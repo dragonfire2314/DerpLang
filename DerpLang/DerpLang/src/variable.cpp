@@ -26,3 +26,58 @@ Variable Variable::operator*(const Variable& rhs)
 		}
 	}
 }
+
+Variable Variable::operator-(const Variable& rhs)
+{
+	//Needs to be worked on, including runtime crashes
+	if (type == rhs.type) {
+		switch (type) {
+		case VAR_DOUBLE:
+			return Variable(type, data.number - rhs.data.number);
+		}
+	}
+}
+
+Variable Variable::operator+(const Variable& rhs)
+{
+	//Needs to be worked on, including runtime crashes
+	if (type == rhs.type) {
+		switch (type) {
+		case VAR_DOUBLE:
+			return Variable(type, data.number + rhs.data.number);
+		}
+	}
+}
+
+Variable Variable::operator/(const Variable& rhs)
+{
+	//Needs to be worked on, including runtime crashes
+	if (type == rhs.type) {
+		switch (type) {
+		case VAR_DOUBLE:
+			return Variable(type, data.number / rhs.data.number);
+		}
+	}
+}
+
+Variable Variable::operator==(const Variable& rhs)
+{
+	//Needs to be worked on, including runtime crashes
+	if (type == rhs.type) {
+		switch (type) {
+		case VAR_DOUBLE:
+			return Variable(VAR_BOOLEAN, data.number == rhs.data.number);
+		}
+	}
+}
+
+Variable Variable::operator!=(const Variable& rhs)
+{
+	//Needs to be worked on, including runtime crashes
+	if (type == rhs.type) {
+		switch (type) {
+		case VAR_DOUBLE:
+			return Variable(VAR_BOOLEAN, data.number != rhs.data.number);
+		}
+	}
+}
