@@ -34,8 +34,6 @@ uint16_t addVariable(Variable v)
 
 uint16_t addFunction(const char* name)
 {
-	clearLocalVarList();
-
 	Variable v;
 	v.type = VAR_OBJ;
 	v.data.obj = new Function();
@@ -100,35 +98,13 @@ uint16_t writeChunkConstantData(Variable data)
 	Local Variables
 ***********************************/
 
-std::unordered_map<std::string, uint16_t> localVarNameToIndex;
-
 void clearLocalVarList() 
 {
-	localVarNameToIndex.clear();
+	
 }
 
-void createLocalVar(std::string name, Variable data) 
+uint32_t createLocalVar(Variable data) 
 {
-	if (localVarNameToIndex.find(name) == localVarNameToIndex.end()) {
-		// not found
-		currentChunk->variableData.push_back(data);
-		localVarNameToIndex.insert({name, currentChunk->variableData.size() - 1});
-	}
-	else {
-		// found
-		//Call a compile time error
-	}
-}
-
-bool isLocalVar(std::string varName, uint16_t& index)
-{
-	if (localVarNameToIndex.find(varName) == localVarNameToIndex.end()) {
-		// not found
-		//Call a compile time error
-	}
-	else {
-		// found
-		index = localVarNameToIndex[varName];
-		return true;
-	}
+	currentChunk->variableData.push_back(data);
+	return currentChunk->variableData.size() - 1;
 }

@@ -18,5 +18,4 @@ Program getProgram();
 void clearProgram();
 
 void clearLocalVarList();
-void createLocalVar(std::string name, Variable data);
-bool isLocalVar(std::string varName, uint16_t& index);
+uint32_t createLocalVar(Variable data);

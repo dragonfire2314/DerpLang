@@ -106,6 +106,26 @@ TEST(Variables, vars3) {
 	EXPECT_EQ(ret, expected);
 }
 
+TEST(Variables, locality) {
+
+	std::ifstream i("../../Tests/Variables/locality.dlang");
+	std::string input((std::istreambuf_iterator<char>(i)),
+		std::istreambuf_iterator<char>());
+	std::ifstream o("../../Tests/Variables/Expected/locality");
+	std::string expected((std::istreambuf_iterator<char>(o)),
+		std::istreambuf_iterator<char>());
+
+	//Compiler
+	Program p = compile(input.c_str());
+
+	//Virtual Machine
+	EXPECT_FALSE(checkErrorStatus());
+
+	std::string ret = runProgram(p);
+
+	EXPECT_EQ(ret, expected);
+}
+
 TEST(Control_Flow, whileTest) {
 
 	std::ifstream i("../../Tests/Control_Flow/while.dlang");

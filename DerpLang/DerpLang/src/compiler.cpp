@@ -29,6 +29,8 @@ void prefixIf();
 void prefixWhile();
 void comparison();
 void compileBrace();
+bool doesVarExist(std::string name);
+uint16_t getVarIndex(std::string name);
 
 //Rule table
 CallEntry rules[] = {
@@ -68,11 +70,15 @@ CallEntry rules[] = {
 Parser parser;
 
 std::unordered_map<std::string, uint16_t> stringToVarLocation;
+std::vector<std::unordered_map<std::string, uint16_t>> localVarNameToIndexArray;
 
 Program compile(const char* data) 
 {
 	clearProgram();
+	for (auto x : localVarNameToIndexArray)
+		x.clear();
 	stringToVarLocation.clear();
+	localVarNameToIndexArray.clear();
 
 	parser.isError = false;
 
@@ -179,22 +185,23 @@ void localVar()
 	//Consume name
 	std::string name(parser.current.start, parser.current.length);
 	consume(TOKEN_VAR_IDENTIFIER, "Expected an indentifier.");
-	//Check if var already exists globally
-	if (stringToVarLocation.find(name) != stringToVarLocation.end()) {
-		//found
-		error("Variable was redefined");
-	}
 	//Make the variable
 	Variable v;
 	v.type = VAR_NONE;
-	createLocalVar(name, v);
+	//Check if var already exists
+	if (doesVarExist(name)) {
+		error("Variable redefinition.");
+	}
+	else {
+		//Create the variable and store the reference
+		localVarNameToIndexArray.back().insert({ name, createLocalVar(v) });
+	}
 	//Determine if data should be stored in the var
 	if (parser.current.type == TOKEN_EQUAL) {
 		consume(TOKEN_EQUAL, "Should not be displayed, lacalVar().");
 		execute();
 		emitOpCode(OP_STORE_LOCAL_VAR);
-		uint16_t index;
-		isLocalVar(name, index);
+		uint16_t index = getVarIndex(name);
 		emitShort(index);
 	}
 }
@@ -233,8 +240,8 @@ void prefixVar()
 	//Determine Var type
 	std::string s(parser.previous.start, parser.previous.length);
 	if (stringToVarLocation.find(s) == stringToVarLocation.end()) {
-		uint16_t index;
-		if (isLocalVar(s, index)) {
+		if (doesVarExist(s)) {
+			uint16_t index = getVarIndex(s);
 			//Is local
 			//Check if next token is an equallity
 			if (parser.current.type == TOKEN_EQUAL) { //Storing
@@ -279,14 +286,7 @@ void prefixWhile()
 	uint32_t lowLoc = emitByte(0x00);
 	uint32_t currentLoc;
 	//Check for left brace
-	if (parser.current.type == TOKEN_LEFT_BRACE) {
-		compileBrace();
-	}
-	else //No braces 
-	{
-		execute();
-		consume(TOKEN_SEMICOLON, "Semicolon not found.");
-	}
+	compileBrace();
 	//Add jump back to top of while
 	emitOpCode(OP_JUMP);
 	emitByte((topOfWhile & 0xFF00) << 8);
@@ -299,10 +299,9 @@ void prefixWhile()
 
 void prefixIf()
 {
-	//Check for left paren
 	consume(TOKEN_LEFT_PAREN, "Expected '('");
+	//Compile condition
 	execute();
-	//Check for right paren
 	consume(TOKEN_RIGHT_PAREN, "Expected ')'");
 	//Emit the branch if false opcode and location
 	emitOpCode(OP_BRANCH_ON_FALSE);
@@ -310,14 +309,7 @@ void prefixIf()
 	uint32_t lowLoc = emitByte(0x00);
 	uint32_t currentLoc;
 	//Compile code in braces
-	if (parser.current.type == TOKEN_LEFT_BRACE) {
-		compileBrace();
-	}
-	else //No braces 
-	{
-		execute();
-		consume(TOKEN_SEMICOLON, "Semicolon not found.");
-	}
+	compileBrace();
 
 	//Check for else
 	if (parser.current.type != TOKEN_ELSE) {
@@ -340,14 +332,7 @@ void prefixIf()
 	writeChunkByteCodeLocation(currentLoc & 0xFF, lowOld);
 	//Consume the stuff for the else and compile it
 	consume(TOKEN_ELSE, "Should not happen perfixIf().");
-	if (parser.current.type == TOKEN_LEFT_BRACE) {
-		compileBrace();
-	}
-	else //No braces 
-	{
-		execute();
-		consume(TOKEN_SEMICOLON, "Semicolon not found.");
-	}
+	compileBrace();
 	//Set jump location to here
 	currentLoc = getChuckByteCodeCurrentLocation();
 	writeChunkByteCodeLocation((currentLoc & 0xFF00) >> 8, highLoc);
@@ -371,13 +356,10 @@ void comparison()
 
 void function() 
 {
-	//Consume name token
 	std::string name(parser.current.start, parser.current.length);
 	consume(TOKEN_VAR_IDENTIFIER, "Expected function name.");
-	//Consume open paren
 	consume(TOKEN_LEFT_PAREN, "Function not fallowed by '('.");
 	//Variables? Not doing this yet, will come back to
-	//Consume close paren
 	consume(TOKEN_RIGHT_PAREN, "Expected ')'.");
 	//Add the function variable
 	uint16_t i = addFunction(name.c_str());
@@ -416,19 +398,35 @@ void globalVar()
 
 void compileBrace()
 {
-	//Consume open brace
-	consume(TOKEN_LEFT_BRACE, "Expected '{'.");
-	while (parser.current.type != TOKEN_RIGHT_BRACE)
-	{
-		switch (parser.current.type) {
-		case TOKEN_WHILE:	consume(TOKEN_WHILE, "expected while?");	prefixWhile();	break;
-		case TOKEN_IF:	consume(TOKEN_IF, "expected if?");	prefixIf();		break;
-		default:
-			execute();
-			consume(TOKEN_SEMICOLON, "Semicolon not found.");
+	//Because we are entering a deeper scope the local variable vector map must be updated
+	std::unordered_map<std::string, uint16_t> m;
+	localVarNameToIndexArray.push_back(m);
+
+
+	if (parser.current.type == TOKEN_LEFT_BRACE) {
+		//Consume open brace
+		consume(TOKEN_LEFT_BRACE, "Expected '{'.");
+		while (parser.current.type != TOKEN_RIGHT_BRACE)
+		{
+			switch (parser.current.type) {
+			case TOKEN_WHILE:	consume(TOKEN_WHILE, "expected while?");	prefixWhile();	break;
+			case TOKEN_IF:	consume(TOKEN_IF, "expected if?");	prefixIf();		break;
+			default:
+				execute();
+				consume(TOKEN_SEMICOLON, "Semicolon not found.");
+			}
 		}
+		consume(TOKEN_RIGHT_BRACE, "Expected '}'.");
 	}
-	consume(TOKEN_RIGHT_BRACE, "Expected '}'.");
+	else //No braces 
+	{
+		execute();
+		if (parser.current.type != TOKEN_RIGHT_BRACE)
+			consume(TOKEN_SEMICOLON, "Semicolon not found.");
+	}
+
+	//Since we have returned from a brace we must pop the variables off the vector
+	localVarNameToIndexArray.pop_back();
 }
 
 void grouping() 
@@ -441,6 +439,40 @@ void brace()
 {
 	execute();
 	consume(TOKEN_RIGHT_BRACE, "Right brace not found.");
+}
+
+/*********************************************
+	Variable maps
+*********************************************/
+bool doesVarExist(std::string name)
+{ 
+	//Check through all variable lists starting with the highest scope
+	if (stringToVarLocation.find(name) != stringToVarLocation.end()) {
+		//found
+		return true;
+	}
+	for (auto x : localVarNameToIndexArray) {
+		if (x.find(name) == x.end()) {
+			continue;
+		}
+		else {
+			return true;
+		}
+	}
+	return false;
+}
+
+uint16_t getVarIndex(std::string name)
+{
+	for (auto x : localVarNameToIndexArray) {
+		if (x.find(name) == x.end()) {
+			continue;
+		}
+		else {
+			return x[name];
+		}
+	}
+	return 0;
 }
 
 /*********************************************
