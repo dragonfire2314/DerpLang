@@ -76,6 +76,15 @@ Variable makeVariable(bool boolean)
 	return v;
 }
 
+Variable makeVariable(std::string str)
+{
+	Variable v;
+	v.type = VAR_OBJ;
+	v.data.obj = new String();
+	v.data.obj->type = OBJ_STRING;
+	((String*)v.data.obj)->str = str;
+	return v;
+}
 
 Variable makeVariable()
 {

@@ -1,0 +1,11 @@
+var foo = 1;
+
+function bar() 
+{
+    print foo;
+}
+
+function main()
+{
+    call bar;
+}

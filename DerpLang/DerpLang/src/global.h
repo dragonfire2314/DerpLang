@@ -23,9 +23,12 @@ enum Byte_Code {
 	OP_NOT_EQUAL,
 	//Functions
 	OP_PRINT,
+	OP_TIME,
 	//Control
 	OP_BRANCH_ON_FALSE,
-	OP_JUMP
+	OP_JUMP,
+	OP_CALL,
+	OP_RETURN
 };
 
 enum Token_Type {
@@ -54,9 +57,12 @@ enum Token_Type {
 
 	//Constant
 	TOKEN_NUMBER,
+	TOKEN_STRING,
 
 	//Commands
 	TOKEN_PRINT,
+	TOKEN_CALL,
+	TOKEN_TIME,
 
 	//Variables
 	TOKEN_VAR,
@@ -121,8 +127,7 @@ struct Chunk {
 };
 
 struct String : Obj {
-	int length;
-	char* data;
+	std::string str;
 };
 
 struct Function : Obj

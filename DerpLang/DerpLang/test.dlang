@@ -1,11 +1,12 @@
-var foo1 = 1;
+function multiply(a, b)
+{
+    print a * b;
+}
 
 function main()
 {
-    call bar;
-}
-
-function bar() 
-{
-    print 100;
+    var t1 = time;
+    var foo = "Testing";
+    print foo;
+    print time - t1;
 }

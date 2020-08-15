@@ -14,6 +14,7 @@ Token number();
 Token identifier();
 Token_Type identifierType();
 bool isAlpha(char c);
+Token_Type makeString();
 
 struct Scanner {
 	const char* start;
@@ -40,6 +41,8 @@ void InitScanner(const char* line)
 	identifierMap.insert(std::pair<std::string, Token_Type>("function", TOKEN_FUNCTION));
 	identifierMap.insert(std::pair<std::string, Token_Type>("print",	TOKEN_PRINT));
 	identifierMap.insert(std::pair<std::string, Token_Type>("var",		TOKEN_VAR));
+	identifierMap.insert(std::pair<std::string, Token_Type>("time",		TOKEN_TIME));
+	identifierMap.insert(std::pair<std::string, Token_Type>("call",		TOKEN_CALL));
 }
 
 int getLine() 
@@ -77,9 +80,26 @@ Token scanToken()
 			else { return makeToken(TOKEN_EQUAL); }
 	case '!': if (peek() == '=') { advance(); return makeToken(TOKEN_NOT_EQUAL); }
 			else { break; }
+	case '"': return makeToken(makeString());
 	}
 
 	return errorToken("No matching token type.");
+}
+
+Token_Type makeString() 
+{
+	//Trim off the "
+	scanner.start += 1;
+	advance();
+	//Skip all characters up to the end '"'
+	while (peek() != '"')
+		advance();
+	advance();
+	//Trim off the "
+	scanner.current -= 1;
+	advance();
+
+	return TOKEN_STRING;
 }
 
 //Parses for an identifier

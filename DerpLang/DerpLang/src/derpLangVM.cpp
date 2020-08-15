@@ -5,10 +5,16 @@
 #include <stack>
 #include <string>
 #include <iostream>
+#include <chrono>
 
 //#define MAKE_VAR(x)
 
 void printVariable(std::string& out, Variable v);
+
+struct ReturnInfo {
+	Chunk* chunk;
+	uint32_t ip;
+};
 
 std::string runProgram(Program program)
 {
@@ -16,6 +22,7 @@ std::string runProgram(Program program)
 	std::string ret;
 
 	std::stack<Variable> varStack;
+	std::stack<ReturnInfo> retInfo;
 
 	uint32_t ip = 0;
 	Chunk* chunk = &((Function*)program.vars[program.mainIndex].data.obj)->chunk;
@@ -23,6 +30,7 @@ std::string runProgram(Program program)
 	//Variables for the opcodes to use
 	Variable v1, v2;
 	uint8_t ub1, ub2;
+	ReturnInfo ri;
 
 	//Find main
 	for (;;) 
@@ -44,6 +52,13 @@ std::string runProgram(Program program)
 			v1 = varStack.top();
 			varStack.pop();
 			printVariable(ret, v1);
+			ip += 1;
+			break;
+		case OP_TIME:
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::system_clock::now().time_since_epoch()
+			);
+			varStack.push(makeVariable((double)ms.count()));
 			ip += 1;
 			break;
 		case OP_MULT:
@@ -138,6 +153,29 @@ std::string runProgram(Program program)
 			ub2 = chunk->byteCode[ip + 2];
 			ip = (ub1 << 8) | ub2;
 			break;
+		case OP_CALL:
+			v1 = varStack.top();
+			varStack.pop();
+			if (v1.type == VAR_OBJ)
+				if (v1.data.obj->type == OBJ_FUNCTION) {
+					ri.chunk = chunk;
+					ri.ip = ip + 1;
+					retInfo.push(ri);
+					ip = 0;
+					chunk = &((Function*)v1.data.obj)->chunk;
+				}
+			break;
+		case OP_RETURN:
+			//Check if ret from main
+			if (&((Function*)program.vars[program.mainIndex].data.obj)->chunk == chunk) {
+				ip++;
+				break;
+			}
+			ri = retInfo.top();
+			retInfo.pop();
+			ip = ri.ip;
+			chunk = ri.chunk;
+			break;
 		default:
 			printf("Opcode not implemented: %x.\n", opcode);
 			std::cin.get();
@@ -154,6 +192,12 @@ void printVariable(std::string& out, Variable v)
 	case VAR_DOUBLE: out += std::to_string(v.data.number) + '\n'; break;
 	case VAR_BOOLEAN: if (v.data.boolean) out += "true\n"; else  out += "false\n"; break;
 	case VAR_NONE: out += "NULL\n"; break;
+	case VAR_OBJ: 
+		switch (v.data.obj->type) 
+		{
+		case OBJ_STRING: out += ((String*)v.data.obj)->str + '\n'; break;
+		}
+		break;
 	}
 }
 

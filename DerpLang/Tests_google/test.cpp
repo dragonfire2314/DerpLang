@@ -165,3 +165,43 @@ TEST(Control_Flow, ifelseTest) {
 
 	EXPECT_EQ(ret, expected);
 }
+
+TEST(Functions, func1) {
+
+	std::ifstream i("../../Tests/Functions/func1.dlang");
+	std::string input((std::istreambuf_iterator<char>(i)),
+		std::istreambuf_iterator<char>());
+	std::ifstream o("../../Tests/Functions/Expected/func1");
+	std::string expected((std::istreambuf_iterator<char>(o)),
+		std::istreambuf_iterator<char>());
+
+	//Compiler
+	Program p = compile(input.c_str());
+
+	//Virtual Machine
+	EXPECT_FALSE(checkErrorStatus());
+
+	std::string ret = runProgram(p);
+
+	EXPECT_EQ(ret, expected);
+}
+
+TEST(Functions, func2) {
+
+	std::ifstream i("../../Tests/Functions/func2.dlang");
+	std::string input((std::istreambuf_iterator<char>(i)),
+		std::istreambuf_iterator<char>());
+	std::ifstream o("../../Tests/Functions/Expected/func2");
+	std::string expected((std::istreambuf_iterator<char>(o)),
+		std::istreambuf_iterator<char>());
+
+	//Compiler
+	Program p = compile(input.c_str());
+
+	//Virtual Machine
+	EXPECT_FALSE(checkErrorStatus());
+
+	std::string ret = runProgram(p);
+
+	EXPECT_EQ(ret, expected);
+}

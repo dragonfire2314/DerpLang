@@ -4,11 +4,14 @@
 #include <iostream>
 #include <unordered_map>
 #include <string>
+#include <chrono>
+#include <ctime> 
 
 void print();
 CallEntry lookupRule(Token_Type type);
 void error(const char* message);
 void number();
+void string();
 void print();
 void binary();
 void emitShort(uint16_t data);
@@ -29,6 +32,9 @@ void prefixIf();
 void prefixWhile();
 void comparison();
 void compileBrace();
+void call();
+void time();
+bool isVarGlobal(std::string name);
 bool doesVarExist(std::string name);
 uint16_t getVarIndex(std::string name);
 
@@ -58,8 +64,12 @@ CallEntry rules[] = {
 	{NULL, comparison, PREC_EQUALITY},//TOKEN_NOT_EQUAL
 
 	{number, NULL, PREC_NONE},		//TOKEN_NUMBER
+	{string, NULL, PREC_NONE},		//TOKEN_STRING
 
 	{print, NULL, PREC_NONE},		//TOKEN_PRINT
+	{call, NULL, PREC_NONE},		//TOKEN_CALL
+	{time, NULL, PREC_NONE},		//TOKEN_TIME
+
 	{localVar, NULL, PREC_NONE},	//TOKEN_VAR
 	 
 	{NULL, NULL, PREC_NONE},		//TOKEN_EOF
@@ -218,6 +228,15 @@ void number()
 	emitShort(loc);
 }
 
+void string() 
+{
+	std::string s(parser.previous.start, parser.previous.length - 1);
+	emitOpCode(OP_CONSTANT);
+
+	uint16_t loc = writeChunkConstantData(makeVariable(s));
+	emitShort(loc);
+}
+
 void binary() 
 {
 	Token_Type operator_type = parser.previous.type;
@@ -233,6 +252,33 @@ void binary()
 		default:
 			error("unreachable code has been hit in Binary().");
 	}
+}
+
+void call() 
+{
+	//consume(TOKEN_CALL, "Should not happen call()");
+	std::string s(parser.current.start, parser.current.length);
+	consume(TOKEN_VAR_IDENTIFIER, "No variable identifier was found");
+
+	if (doesVarExist(s)) {
+		if (isVarGlobal(s)) {
+			emitOpCode(OP_LOAD_GLOBAL_VAR);
+			emitShort(stringToVarLocation[s]);
+		}
+		else {
+			error("Call made to non function");
+		}
+	}
+	else {
+		error("function does not exist");
+	}
+	emitOpCode(OP_CALL);
+}
+
+void time() 
+{
+	//Emit the opcode
+	emitOpCode(OP_TIME);
 }
 
 void prefixVar() 
@@ -360,12 +406,15 @@ void function()
 	consume(TOKEN_VAR_IDENTIFIER, "Expected function name.");
 	consume(TOKEN_LEFT_PAREN, "Function not fallowed by '('.");
 	//Variables? Not doing this yet, will come back to
+
 	consume(TOKEN_RIGHT_PAREN, "Expected ')'.");
 	//Add the function variable
 	uint16_t i = addFunction(name.c_str());
 	stringToVarLocation.insert({ name, i});
 	//Compile expressions untill '}' is hit
 	compileBrace();
+
+	emitOpCode(OP_RETURN);
 }
 
 void globalVar() 
@@ -444,6 +493,15 @@ void brace()
 /*********************************************
 	Variable maps
 *********************************************/
+bool isVarGlobal(std::string name)
+{
+	if (stringToVarLocation.find(name) != stringToVarLocation.end()) {
+		//found
+		return true;
+	}
+	return false;
+}
+
 bool doesVarExist(std::string name)
 { 
 	//Check through all variable lists starting with the highest scope

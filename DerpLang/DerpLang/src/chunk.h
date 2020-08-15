@@ -11,6 +11,7 @@ uint32_t getChuckByteCodeCurrentLocation();
 
 Variable makeVariable(double number);
 Variable makeVariable(bool boolean);
+Variable makeVariable(std::string str);
 Variable makeVariable();
 
 uint16_t writeChunkConstantData(Variable data);

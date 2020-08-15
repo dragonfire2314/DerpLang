@@ -1,0 +1,20 @@
+function foo()
+{
+    print 40;
+}
+
+function bar() 
+{
+    var goo = 3;
+    print goo;
+    print 100;
+    call foo;
+    print 4;
+}
+
+function main()
+{
+    var goo = 2;
+    call bar;
+    print goo;
+}
